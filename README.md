@@ -32,4 +32,10 @@ ALso set default formatter automativcally on save
 `uvicorn main:app --reload` // main of file=main, name of fastapi instance = app
 
 - You can visit `http://localhost:8000/`
--
+- The docs are at `http://localhost:8000/docs`
+
+# Git 
+- Generate gitignore with `python` and `venv` 
+- (visit here to generate gitignore file)[https://www.toptal.com/developers/gitignore]
+- Afterwards git init commit and push changes to new repo
+
