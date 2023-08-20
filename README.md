@@ -29,7 +29,7 @@ ALso set default formatter automativcally on save
 
 # Start the web server
 
-`uvicorn main:app --reload` // main of file=main, name of fastapi instance = app
+`uvicorn app.main:app --reload` // app=folder, file=main, name of fastapi instance = app
 
 - You can visit `http://localhost:8000/`
 - The docs are at `http://localhost:8000/docs`
