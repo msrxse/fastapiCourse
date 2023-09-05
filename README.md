@@ -5,7 +5,7 @@
 # Set default interpreter in vscode
 
 `CTRL+SHIFT+P` and search `Python:Select interpreter`
-Choose the one withing the venv folder
+Choose the one within the venv folder
 Also ensure is activated in console within vscode (reopen console if necessary)
 (the prompt should be preceded by `(venv)`)
 
