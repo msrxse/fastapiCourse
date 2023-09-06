@@ -1,7 +1,6 @@
 from typing import Optional
 from fastapi import FastAPI, Response, status, HTTPException
 from pydantic import BaseModel
-from random import randrange
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import time
@@ -62,39 +61,40 @@ def read_root():
 def get_posts():
     cursor.execute(""" SELECT * FROM posts """)
     posts = cursor.fetchall()
+
+    conn.commit()
+
     return {"data": posts}  # automatically serializes it  - converts it to JSON
 
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
 def create_posts(post: Post):
-    # print(vars(post))  # converts Pydantic model into dic
-    post_dict = vars(post)
-    post_dict["id"] = randrange(0, 1000000)
-    my_posts.append(post_dict)
+    cursor.execute(
+        """INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING * """,
+        (post.title, post.content, post.published),
+    )
+    new_post = cursor.fetchone()
 
-    # Send a 201 status code when creating anything!!
-
-    return {"data": post_dict}
+    return {"data": new_post}
 
 
 @app.get("/posts/{id}")  # id is a path parameter
 def get_post(
     id: int,
-    response: Response,
 ):  # automatic extraction happening here
     # type validates is an integer, any string would error
-    # print(type(id)) # prints <class 'str'>
-
-    post = find_post(
-        id
-    )  # I am assured this is an integer - since the type validates it above
+    cursor.execute(
+        """SELECT * FROM posts WHERE id = %s""", (str(id),)
+    )  # the comma 2 chars from the right is important!
+    post = cursor.fetchone()
 
     # Use HTTPException to instead return error msg with 404 status id post not found
     if not post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"post with {id} was not found",
+            detail=f"post with id: {id} was not found",
         )
+
     return {"post_detail": post}
 
 
@@ -105,17 +105,17 @@ def get_post(
 def delete_post(
     id: int,
 ):  # automatic extraction happening here + validation
-    # deleting post
-    # find the index of the item with that id
-    index = find_index_post(id)
+    cursor.execute("""DELETE FROM posts WHERE id = %s RETURNING *""", (str(id),))
+    deleted_post = cursor.fetchone()
 
-    if index is None:
+    conn.commit()
+
+    if deleted_post is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"post with id: {id} does not exist",
         )
 
-    my_posts.pop(index)
     return Response(
         status_code=status.HTTP_204_NO_CONTENT
     )  # Dont send any data back on deletes! just the status
@@ -123,20 +123,24 @@ def delete_post(
 
 @app.put("/posts/{id}")
 def update_post(id: int, post: Post):
-    # find the index of the item with that id
-    index = find_index_post(id)
+    cursor.execute(
+        """UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *""",
+        (
+            post.title,
+            post.content,
+            post.published,
+            str(id),
+        ),
+    )
+    updated_post = cursor.fetchone()
+
+    conn.commit()
 
     # Use HTTPException to instead return error msg with 404 status id post not found
-    if index is None:
+    if updated_post is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"post with {id} does not exist",
+            detail=f"post with id: {id} does not exist",
         )
 
-    post_dict = vars(
-        post
-    )  # takes data received in post and converts it into dictionary
-    post_dict["id"] = id
-    my_posts[index] = post_dict
-
-    return {"data": post_dict}
+    return {"data": updated_post}
